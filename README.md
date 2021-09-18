@@ -1,1 +1,1 @@
-#BIP : batch-image-processor
+# BIP : batch-image-processor
