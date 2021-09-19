@@ -16,15 +16,21 @@ async function load(event) {
     }
 
     const buffer = await readFile(file)
-    const zipReader = await bip.ZipReader.new(buffer)
+    const zipReader = await bip.ArchiveReader.new(buffer)
     const filenames = await zipReader.extractFilenames()
 
-    for (const filename of filenames) {
-        const buffer = await zipReader.extractBinary(filename)
-        const blob = new Blob([buffer], {type: 'application/octet-stream'})
-        const basename = filename.split('/').pop()
-        saveAs(blob, filename)
-    }
+    const zipWriter = await bip.ArchiveWriter.new();
+    zipWriter.renameToUppercase(zipReader)
+    const writerBuffer = zipWriter.extractBinary()
+    const blob = new Blob([writerBuffer], {type: 'application/octet-stream'})
+    saveAs(blob, 'test.zip')
+
+    // for (const filename of filenames) {
+    //     const buffer = await zipReader.extractBinary(filename)
+    //     const blob = new Blob([buffer], {type: 'application/octet-stream'})
+    //     const basename = filename.split('/').pop()
+    //     saveAs(blob, basename)
+    // }
 }
 
 async function readFile(fileInput) {
