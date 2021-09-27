@@ -8,6 +8,18 @@ use zip::{ZipArchive, ZipWriter};
 use zip::read::ZipFile;
 use zip::result::ZipResult;
 use std::error::Error;
+use image::{RgbaImage, ImageBuffer, GenericImageView};
+use image::io::Reader;
+use image::ImageFormat::Jpeg;
+use web_sys;
+use std::process::exit;
+
+
+macro_rules! log {
+    ( $( $t:tt )* ) => {
+        web_sys::console::log_1(&format!( $( $t )* ).into());
+    }
+}
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -81,23 +93,40 @@ impl ArchiveWriter {
     pub fn rename_to_uppercase(&mut self, reader: &mut ArchiveReader) {
         utils::set_panic_hook();
         for i in 0..reader.zip.len() {
-            let file = reader.zip.by_index(i).unwrap();
+            let mut file = reader.zip.by_index(i).unwrap();
 
             if !file.is_file() {
                 continue;
             }
 
+
+            let mut buffer = Vec::with_capacity(file.size() as usize);
+            std::io::copy(&mut file, &mut buffer);
+            //log!("{:?}", buffer);
+            let img = image::load_from_memory(&*buffer).unwrap();
+            let img = img.rotate90();
+            let mut buffer = Vec::new();
+            img.write_to(&mut buffer, Jpeg);
+            //log!("{:?}", buffer);
+
+            let options = FileOptions::default()
+                .compression_method(zip::CompressionMethod::Stored)
+                .unix_permissions(0o755);
+
+            let filename = file.name().to_owned();
+            self.zip.start_file(file.name(), options).unwrap();
+            self.zip.write_all(&*buffer).unwrap();
+
+            drop(file);
+            let mut file = reader.zip.by_name(&*filename).unwrap();
             let new_name = file.name().to_uppercase();
             self.zip.raw_copy_file_rename(file, new_name).unwrap();
         }
-
     }
 
     #[wasm_bindgen(js_name = extractBinary)]
     pub fn extract_binary(&mut self) -> Vec<u8> {
-        utils::set_panic_hook();
         let mut zip = &mut self.zip;
-
         let result = zip.finish().unwrap();
 
         result.into_inner()
