@@ -8,11 +8,12 @@ use zip::{ZipArchive, ZipWriter};
 use zip::read::ZipFile;
 use zip::result::ZipResult;
 use std::error::Error;
-use image::{RgbaImage, ImageBuffer, GenericImageView};
+use image::{RgbaImage, ImageBuffer, GenericImageView, DynamicImage};
 use image::io::Reader;
 use image::ImageFormat::Jpeg;
 use web_sys;
 use std::process::exit;
+use image::imageops::FilterType;
 
 
 macro_rules! log {
@@ -89,8 +90,8 @@ impl ArchiveWriter {
         ArchiveWriter { zip, options }
     }
 
-    #[wasm_bindgen(js_name = renameToUppercase)]
-    pub fn rename_to_uppercase(&mut self, reader: &mut ArchiveReader) {
+    #[wasm_bindgen(js_name = resizeAndRenameToLowerCase)]
+    pub fn rename_to_uppercase_and_rotate90(&mut self, reader: &mut ArchiveReader) {
         utils::set_panic_hook();
         for i in 0..reader.zip.len() {
             let mut file = reader.zip.by_index(i).unwrap();
@@ -99,28 +100,33 @@ impl ArchiveWriter {
                 continue;
             }
 
-
             let mut buffer = Vec::with_capacity(file.size() as usize);
             std::io::copy(&mut file, &mut buffer);
-            //log!("{:?}", buffer);
             let img = image::load_from_memory(&*buffer).unwrap();
-            let img = img.rotate90();
+
+            log!("{:?}", img.dimensions());
+
+            let img = (|| -> DynamicImage {
+                if img.width() > img.height() {
+                    return img.resize_to_fill(img.width(), img.width(), FilterType::Nearest);
+                }
+
+                return img.resize_to_fill(img.height(), img.height(), FilterType::Nearest);
+            })();
+
+            log!("{:?}", img.dimensions());
+
             let mut buffer = Vec::new();
             img.write_to(&mut buffer, Jpeg);
-            //log!("{:?}", buffer);
 
             let options = FileOptions::default()
-                .compression_method(zip::CompressionMethod::Stored)
-                .unix_permissions(0o755);
+                .compression_method(zip::CompressionMethod::Stored);
 
-            let filename = file.name().to_owned();
-            self.zip.start_file(file.name(), options).unwrap();
-            self.zip.write_all(&*buffer).unwrap();
+            let filename = file.name().to_lowercase().to_owned();
 
             drop(file);
-            let mut file = reader.zip.by_name(&*filename).unwrap();
-            let new_name = file.name().to_uppercase();
-            self.zip.raw_copy_file_rename(file, new_name).unwrap();
+            self.zip.start_file(filename, options).unwrap();
+            self.zip.write_all(&*buffer).unwrap();
         }
     }
 
