@@ -1,20 +1,13 @@
 mod utils;
 
-use std::io;
+use image::imageops::FilterType;
+use image::ImageFormat::Jpeg;
+use image::{DynamicImage, GenericImageView};
 use std::io::{Cursor, Write};
 use wasm_bindgen::prelude::*;
+use web_sys;
 use zip::write::FileOptions;
 use zip::{ZipArchive, ZipWriter};
-use zip::read::ZipFile;
-use zip::result::ZipResult;
-use std::error::Error;
-use image::{RgbaImage, ImageBuffer, GenericImageView, DynamicImage};
-use image::io::Reader;
-use image::ImageFormat::Jpeg;
-use web_sys;
-use std::process::exit;
-use image::imageops::FilterType;
-
 
 macro_rules! log {
     ( $( $t:tt )* ) => {
@@ -49,7 +42,7 @@ impl ArchiveReader {
         let mut filenames = Vec::new();
 
         for i in 0..zip.len() {
-            let mut file = zip.by_index(i).unwrap();
+            let file = zip.by_index(i).unwrap();
 
             if !file.is_file() {
                 continue;
@@ -68,7 +61,7 @@ impl ArchiveReader {
 
         let mut file = zip.by_name(filename).unwrap();
         let mut buffer = Vec::with_capacity(file.size() as usize);
-        std::io::copy(&mut file, &mut buffer);
+        std::io::copy(&mut file, &mut buffer).unwrap();
 
         buffer
     }
@@ -77,7 +70,6 @@ impl ArchiveReader {
 #[wasm_bindgen]
 pub struct ArchiveWriter {
     zip: ZipWriter<Cursor<Vec<u8>>>,
-    options: FileOptions,
 }
 
 #[wasm_bindgen]
@@ -85,9 +77,8 @@ impl ArchiveWriter {
     pub fn new() -> ArchiveWriter {
         let buffer = Cursor::new(Vec::new());
         let zip = ZipWriter::new(buffer);
-        let options = FileOptions::default();
 
-        ArchiveWriter { zip, options }
+        ArchiveWriter { zip }
     }
 
     #[wasm_bindgen(js_name = resizeAndRenameToLowerCase)]
@@ -101,7 +92,7 @@ impl ArchiveWriter {
             }
 
             let mut buffer = Vec::with_capacity(file.size() as usize);
-            std::io::copy(&mut file, &mut buffer);
+            std::io::copy(&mut file, &mut buffer).unwrap();
             let img = image::load_from_memory(&*buffer).unwrap();
 
             log!("{:?}", img.dimensions());
@@ -117,10 +108,9 @@ impl ArchiveWriter {
             log!("{:?}", img.dimensions());
 
             let mut buffer = Vec::new();
-            img.write_to(&mut buffer, Jpeg);
+            img.write_to(&mut buffer, Jpeg).unwrap();
 
-            let options = FileOptions::default()
-                .compression_method(zip::CompressionMethod::Stored);
+            let options = FileOptions::default().compression_method(zip::CompressionMethod::Stored);
 
             let filename = file.name().to_lowercase().to_owned();
 
@@ -132,7 +122,7 @@ impl ArchiveWriter {
 
     #[wasm_bindgen(js_name = extractBinary)]
     pub fn extract_binary(&mut self) -> Vec<u8> {
-        let mut zip = &mut self.zip;
+        let zip = &mut self.zip;
         let result = zip.finish().unwrap();
 
         result.into_inner()
