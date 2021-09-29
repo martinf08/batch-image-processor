@@ -2,12 +2,13 @@ mod utils;
 
 use image::imageops::FilterType;
 use image::ImageFormat::Jpeg;
-use image::{DynamicImage, GenericImageView};
+use image::{DynamicImage, GenericImageView, imageops, RgbImage, ImageBuffer, Rgb};
 use std::io::{Cursor, Write};
 use wasm_bindgen::prelude::*;
 use web_sys;
 use zip::write::FileOptions;
 use zip::{ZipArchive, ZipWriter};
+use zip::read::ZipFile;
 
 macro_rules! log {
     ( $( $t:tt )* ) => {
@@ -91,30 +92,20 @@ impl ArchiveWriter {
                 continue;
             }
 
-            let mut buffer = Vec::with_capacity(file.size() as usize);
-            std::io::copy(&mut file, &mut buffer).unwrap();
-            let img = image::load_from_memory(&*buffer).unwrap();
+            let filename = file.name().to_lowercase().to_owned();
 
-            log!("{:?}", img.dimensions());
+            let img = self.resize_img(file);
 
-            let img = (|| -> DynamicImage {
-                if img.width() > img.height() {
-                    return img.resize_to_fill(img.width(), img.width(), FilterType::Nearest);
-                }
-
-                return img.resize_to_fill(img.height(), img.height(), FilterType::Nearest);
-            })();
-
-            log!("{:?}", img.dimensions());
+            let mut overlay = self.create_overlay(&img.dimensions());
+            imageops::overlay(&mut overlay, &img, 0, 0);
+            let mut buffer = overlay.into_raw();
+            let overlay = image::load_from_memory(&buffer).unwrap();
 
             let mut buffer = Vec::new();
-            img.write_to(&mut buffer, Jpeg).unwrap();
+            overlay.write_to(&mut buffer, Jpeg).unwrap();
 
             let options = FileOptions::default().compression_method(zip::CompressionMethod::Stored);
 
-            let filename = file.name().to_lowercase().to_owned();
-
-            drop(file);
             self.zip.start_file(filename, options).unwrap();
             self.zip.write_all(&*buffer).unwrap();
         }
@@ -126,5 +117,29 @@ impl ArchiveWriter {
         let result = zip.finish().unwrap();
 
         result.into_inner()
+    }
+
+    fn resize_img(&self, mut file: ZipFile) -> DynamicImage {
+        let mut buffer = Vec::with_capacity(file.size() as usize);
+        std::io::copy(&mut file, &mut buffer).unwrap();
+        let img = image::load_from_memory(&*buffer).unwrap();
+
+        let img = if img.width() > img.height() {
+            img.resize(img.width(), img.width(), FilterType::Nearest)
+        } else {
+            img.resize(img.height(), img.height(), FilterType::Nearest)
+        };
+
+        drop(file);
+
+        img
+    }
+
+    fn create_overlay(&self, (height, width): &(u32, u32)) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
+        return if height > width {
+            RgbImage::new(*height, *height)
+        } else {
+            RgbImage::new(*width, *width)
+        }
     }
 }
