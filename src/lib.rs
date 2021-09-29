@@ -2,7 +2,7 @@ mod utils;
 
 use image::imageops::FilterType;
 use image::ImageFormat::Jpeg;
-use image::{DynamicImage, GenericImageView, imageops, RgbImage, ImageBuffer, Rgb};
+use image::{DynamicImage, GenericImageView, imageops, RgbImage, ImageBuffer, Rgb, RgbaImage};
 use std::io::{Cursor, Write};
 use wasm_bindgen::prelude::*;
 use web_sys;
@@ -95,6 +95,8 @@ impl ArchiveWriter {
             let filename = file.name().to_lowercase().to_owned();
 
             let img = self.resize_img(file);
+            let img = ImageBuffer::from(img.into_rgba8());
+            let img = self.convert(RgbaImage::from(img));
 
             let mut overlay = self.create_overlay(&img.dimensions());
             imageops::overlay(&mut overlay, &img, 0, 0);
@@ -124,6 +126,7 @@ impl ArchiveWriter {
         std::io::copy(&mut file, &mut buffer).unwrap();
         let img = image::load_from_memory(&*buffer).unwrap();
 
+
         let img = if img.width() > img.height() {
             img.resize(img.width(), img.width(), FilterType::Nearest)
         } else {
@@ -141,5 +144,16 @@ impl ArchiveWriter {
         } else {
             RgbImage::new(*width, *width)
         }
+    }
+
+    pub fn convert(&self, img: image::RgbaImage) -> image::RgbImage {
+        let (width, height) = img.dimensions();
+        let mut buffer: image::RgbImage = image::ImageBuffer::new(width, height);
+
+        for (to, &image::Rgba([r, g, b, _])) in buffer.pixels_mut().zip(img.pixels()) {
+            *to = image::Rgb([r, g, b]);
+        }
+
+        buffer
     }
 }
