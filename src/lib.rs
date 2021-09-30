@@ -98,8 +98,8 @@ impl ArchiveWriter {
             let img = ImageBuffer::from(img.into_rgba8());
             let img = self.convert(RgbaImage::from(img));
 
-            let mut overlay = self.create_overlay(&img.dimensions());
-            imageops::overlay(&mut overlay, &img, 0, 0);
+            let ((x, y), mut overlay) = self.create_overlay(&img.dimensions());
+            imageops::overlay(&mut overlay, &img, x, y);
 
             let mut writer = Vec::new();
             let mut encoder = JpegEncoder::new(&mut writer);
@@ -122,11 +122,11 @@ impl ArchiveWriter {
 }
 
 impl ArchiveWriter {
-    fn create_overlay(&self, (height, width): &(u32, u32)) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
+    fn create_overlay(&self, (height, width): &(u32, u32)) -> ((u32, u32),ImageBuffer<Rgb<u8>, Vec<u8>>) {
         return if height > width {
-            RgbImage::new(*height, *height)
+            ((0, (height - width) / 2), RgbImage::new(*height, *height))
         } else {
-            RgbImage::new(*width, *width)
+            (((width - height) / 2, 0), RgbImage::new(*width, *width))
         }
     }
 
