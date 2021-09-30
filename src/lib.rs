@@ -1,14 +1,16 @@
 mod utils;
 
+use image::codecs::jpeg::JpegEncoder;
 use image::imageops::FilterType;
-use image::{DynamicImage, GenericImageView, imageops, RgbImage, ImageBuffer, Rgb, RgbaImage, Rgba};
+use image::{
+    imageops, DynamicImage, GenericImageView, ImageBuffer, Rgb, RgbImage, Rgba, RgbaImage,
+};
 use std::io::{Cursor, Write};
 use wasm_bindgen::prelude::*;
 use web_sys;
+use zip::read::ZipFile;
 use zip::write::FileOptions;
 use zip::{ZipArchive, ZipWriter};
-use zip::read::ZipFile;
-use image::codecs::jpeg::JpegEncoder;
 
 macro_rules! log {
     ( $( $t:tt )* ) => {
@@ -126,7 +128,7 @@ impl ArchiveWriter {
         let (x, y, size) = match height {
             x if x > width => (0, (height - width) / 2, *height),
             x if x < width => ((width - height) / 2, 0, *width),
-            _ => (0, 0, *height)
+            _ => (0, 0, *height),
         };
 
         let mut buffer: RgbImage = ImageBuffer::new(size, size);
@@ -153,15 +155,14 @@ impl ArchiveWriter {
         std::io::copy(&mut file, &mut buffer).unwrap();
         let img = image::load_from_memory(&*buffer).unwrap();
 
-
-        let img = if img.width() > img.height() {
-            img.resize(img.width(), img.width(), FilterType::Nearest)
-        } else {
-            img.resize(img.height(), img.height(), FilterType::Nearest)
+        let size = match height {
+            x if x > width => height,
+            _ => width,
         };
 
+        let resized_img = img.resize(size, size, FilterType::Nearest);
         drop(file);
 
-        img
+        resized_img
     }
 }
