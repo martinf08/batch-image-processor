@@ -84,8 +84,8 @@ impl ArchiveWriter {
         ArchiveWriter { zip }
     }
 
-    #[wasm_bindgen(js_name = resizeAndRenameToLowerCase)]
-    pub fn rename_to_uppercase_and_rotate90(&mut self, reader: &mut ArchiveReader) {
+    #[wasm_bindgen(js_name = transformImage)]
+    pub fn transform_image(&mut self, reader: &mut ArchiveReader) {
         utils::set_panic_hook();
         for i in 0..reader.zip.len() {
             let file = reader.zip.by_index(i).unwrap();
@@ -155,9 +155,9 @@ impl ArchiveWriter {
         std::io::copy(&mut file, &mut buffer).unwrap();
         let img = image::load_from_memory(&*buffer).unwrap();
 
-        let size = match height {
-            x if x > width => height,
-            _ => width,
+        let size = match img.height() {
+            x if x > img.width() => img.height(),
+            _ => img.width(),
         };
 
         let resized_img = img.resize(size, size, FilterType::Nearest);

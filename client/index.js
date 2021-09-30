@@ -20,7 +20,7 @@ async function load(event) {
     const filenames = await zipReader.extractFilenames()
 
     const zipWriter = await bip.ArchiveWriter.new();
-    await zipWriter.resizeAndRenameToLowerCase(zipReader)
+    await zipWriter.transformImage(zipReader)
     const writerBuffer = zipWriter.extractBinary()
     const blob = new Blob([writerBuffer], {type: 'application/octet-stream'})
     saveAs(blob, 'test.zip')
