@@ -1,7 +1,6 @@
 mod utils;
 
 use image::imageops::FilterType;
-use image::ImageFormat::Jpeg;
 use image::{DynamicImage, GenericImageView, imageops, RgbImage, ImageBuffer, Rgb, RgbaImage};
 use std::io::{Cursor, Write};
 use wasm_bindgen::prelude::*;
@@ -9,6 +8,7 @@ use web_sys;
 use zip::write::FileOptions;
 use zip::{ZipArchive, ZipWriter};
 use zip::read::ZipFile;
+use image::codecs::jpeg::JpegEncoder;
 
 macro_rules! log {
     ( $( $t:tt )* ) => {
@@ -86,7 +86,7 @@ impl ArchiveWriter {
     pub fn rename_to_uppercase_and_rotate90(&mut self, reader: &mut ArchiveReader) {
         utils::set_panic_hook();
         for i in 0..reader.zip.len() {
-            let mut file = reader.zip.by_index(i).unwrap();
+            let file = reader.zip.by_index(i).unwrap();
 
             if !file.is_file() {
                 continue;
@@ -100,16 +100,15 @@ impl ArchiveWriter {
 
             let mut overlay = self.create_overlay(&img.dimensions());
             imageops::overlay(&mut overlay, &img, 0, 0);
-            let mut buffer = overlay.into_raw();
-            let overlay = image::load_from_memory(&buffer).unwrap();
 
-            let mut buffer = Vec::new();
-            overlay.write_to(&mut buffer, Jpeg).unwrap();
+            let mut writer = Vec::new();
+            let mut encoder = JpegEncoder::new(&mut writer);
+            JpegEncoder::encode_image(&mut encoder, &overlay).unwrap();
 
             let options = FileOptions::default().compression_method(zip::CompressionMethod::Stored);
 
             self.zip.start_file(filename, options).unwrap();
-            self.zip.write_all(&*buffer).unwrap();
+            self.zip.write_all(&*writer).unwrap();
         }
     }
 
@@ -120,24 +119,9 @@ impl ArchiveWriter {
 
         result.into_inner()
     }
+}
 
-    fn resize_img(&self, mut file: ZipFile) -> DynamicImage {
-        let mut buffer = Vec::with_capacity(file.size() as usize);
-        std::io::copy(&mut file, &mut buffer).unwrap();
-        let img = image::load_from_memory(&*buffer).unwrap();
-
-
-        let img = if img.width() > img.height() {
-            img.resize(img.width(), img.width(), FilterType::Nearest)
-        } else {
-            img.resize(img.height(), img.height(), FilterType::Nearest)
-        };
-
-        drop(file);
-
-        img
-    }
-
+impl ArchiveWriter {
     fn create_overlay(&self, (height, width): &(u32, u32)) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
         return if height > width {
             RgbImage::new(*height, *height)
@@ -155,5 +139,22 @@ impl ArchiveWriter {
         }
 
         buffer
+    }
+
+    fn resize_img(&self, mut file: ZipFile) -> DynamicImage {
+        let mut buffer = Vec::with_capacity(file.size() as usize);
+        std::io::copy(&mut file, &mut buffer).unwrap();
+        let img = image::load_from_memory(&*buffer).unwrap();
+
+
+        let img = if img.width() > img.height() {
+            img.resize(img.width(), img.width(), FilterType::Nearest)
+        } else {
+            img.resize(img.height(), img.height(), FilterType::Nearest)
+        };
+
+        drop(file);
+
+        img
     }
 }
