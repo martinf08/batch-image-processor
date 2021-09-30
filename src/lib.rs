@@ -1,7 +1,7 @@
 mod utils;
 
 use image::imageops::FilterType;
-use image::{DynamicImage, GenericImageView, imageops, RgbImage, ImageBuffer, Rgb, RgbaImage};
+use image::{DynamicImage, GenericImageView, imageops, RgbImage, ImageBuffer, Rgb, RgbaImage, Rgba};
 use std::io::{Cursor, Write};
 use wasm_bindgen::prelude::*;
 use web_sys;
@@ -122,20 +122,27 @@ impl ArchiveWriter {
 }
 
 impl ArchiveWriter {
-    fn create_overlay(&self, (height, width): &(u32, u32)) -> ((u32, u32),ImageBuffer<Rgb<u8>, Vec<u8>>) {
-        return if height > width {
-            ((0, (height - width) / 2), RgbImage::new(*height, *height))
-        } else {
-            (((width - height) / 2, 0), RgbImage::new(*width, *width))
+    fn create_overlay(&self, (height, width): &(u32, u32)) -> ((u32, u32), RgbImage) {
+        let (x, y, size) = match height {
+            x if x > width => (0, (height - width) / 2, *height),
+            x if x < width => ((width - height) / 2, 0, *width),
+            _ => (0, 0, *height)
+        };
+
+        let mut buffer: RgbImage = ImageBuffer::new(size, size);
+        for to in buffer.pixels_mut() {
+            *to = Rgb([255, 255, 255]);
         }
+
+        ((x, y), buffer)
     }
 
-    pub fn convert(&self, img: image::RgbaImage) -> image::RgbImage {
+    pub fn convert(&self, img: RgbaImage) -> RgbImage {
         let (width, height) = img.dimensions();
-        let mut buffer: image::RgbImage = image::ImageBuffer::new(width, height);
+        let mut buffer: RgbImage = ImageBuffer::new(width, height);
 
-        for (to, &image::Rgba([r, g, b, _])) in buffer.pixels_mut().zip(img.pixels()) {
-            *to = image::Rgb([r, g, b]);
+        for (to, &Rgba([r, g, b, _])) in buffer.pixels_mut().zip(img.pixels()) {
+            *to = Rgb([r, g, b]);
         }
 
         buffer
