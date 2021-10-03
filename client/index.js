@@ -17,10 +17,28 @@ async function load(event) {
 
     const buffer = await readFile(file)
     const zipReader = await bip.ArchiveReader.new(buffer)
+
+    const bar = document.getElementById('js-progressbar');
+
+    const max = parseInt(zipReader.getLength());
+    let unit = 100
+    if (max > 0) {
+        unit = 100 / max
+    }
+
+    const animate = setInterval(async function () {
+        const idx = parseInt(await zipReader.getProcessIdx())
+        bar.value += idx * unit;
+
+        if (bar.value >= bar.max) {
+            clearInterval(animate);
+        }
+    }, 100);
+
     const filenames = await zipReader.extractFilenames()
 
     const zipWriter = await bip.ArchiveWriter.new();
-    await zipWriter.transformImage(zipReader)
+    await zipWriter.transformImages(zipReader)
     const writerBuffer = zipWriter.extractBinary()
     const blob = new Blob([writerBuffer], {type: 'application/octet-stream'})
     saveAs(blob, 'test.zip')

@@ -27,6 +27,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[wasm_bindgen]
 pub struct ArchiveReader {
     zip: ZipArchive<Cursor<Vec<u8>>>,
+    process_idx: u32
 }
 
 #[wasm_bindgen]
@@ -35,7 +36,17 @@ impl ArchiveReader {
         let reader = Cursor::new(buffer);
         let zip = ZipArchive::new(reader).unwrap();
 
-        ArchiveReader { zip }
+        ArchiveReader { zip, process_idx: 0 }
+    }
+
+    #[wasm_bindgen(js_name = getLength)]
+    pub fn get_length(&self) -> JsValue {
+        JsValue::from(self.zip.len())
+    }
+
+    #[wasm_bindgen(js_name = getProcessIdx)]
+    pub fn get_process_idx(&self) -> JsValue {
+        JsValue::from(self.process_idx)
     }
 
     #[wasm_bindgen(js_name = extractFilenames)]
@@ -46,6 +57,7 @@ impl ArchiveReader {
 
         for i in 0..zip.len() {
             let file = zip.by_index(i).unwrap();
+            self.process_idx = i as u32;
 
             if !file.is_file() {
                 continue;
@@ -84,8 +96,8 @@ impl ArchiveWriter {
         ArchiveWriter { zip }
     }
 
-    #[wasm_bindgen(js_name = transformImage)]
-    pub fn transform_image(&mut self, reader: &mut ArchiveReader) {
+    #[wasm_bindgen(js_name = transformImages)]
+    pub fn transform_images(&mut self, reader: &mut ArchiveReader) {
         utils::set_panic_hook();
         for i in 0..reader.zip.len() {
             let file = reader.zip.by_index(i).unwrap();
