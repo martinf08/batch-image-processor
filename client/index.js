@@ -18,9 +18,53 @@ async function load(event) {
     const buffer = await readFile(file)
     const zipReader = await bip.ArchiveReader.new(buffer)
 
+    await progressBar(zipReader)
+
+    const filenames = await zipReader.extractFilenames()
+
+    const zipWriter = await bip.ArchiveWriter.new();
+    await zipWriter.transformImages(zipReader)
+
+    const $template = document.querySelector('[data-js=list-item-template]')
+    const $list = document.querySelector('[data-js=list]')
+
+    for (const filename of filenames) {
+        const $item = document.importNode($template.content, true)
+        const $filename = $item.querySelector('[data-js="filename"]')
+        const $extract = $item.querySelector('[data-js="extract"]')
+
+        $filename.textContent = filename
+        $extract.addEventListener('click', async () => {
+            await extractFile(zipReader, filename)
+        })
+
+        $list.appendChild($item)
+    }
+
+    const $zipDownloadButton = document.getElementById("zip-download")
+    $zipDownloadButton.addEventListener('click', async () => {
+        await extractZip(zipWriter)
+    })
+    $zipDownloadButton.style.display = "block"
+}
+
+async function extractZip(zipWriter) {
+    const writerBuffer = zipWriter.extractBinary()
+    const blob = new Blob([writerBuffer], {type: 'application/octet-stream'})
+    saveAs(blob, 'images.zip')
+}
+
+async function extractFile(zipReader, filename) {
+    const buffer = await zipReader.extractBinary(filename)
+    const blob = new Blob([buffer], {type: 'application/octet-stream'})
+    const basename = filename.split('/').pop()
+    saveAs(blob, basename)
+}
+
+async function progressBar(zipReader) {
     const bar = document.getElementById('js-progressbar');
 
-    const max = parseInt(zipReader.getLength());
+    const max = parseInt(await zipReader.getLength());
     let unit = 100
     if (max > 0) {
         unit = 100 / max
@@ -34,21 +78,6 @@ async function load(event) {
             clearInterval(animate);
         }
     }, 100);
-
-    const filenames = await zipReader.extractFilenames()
-
-    const zipWriter = await bip.ArchiveWriter.new();
-    await zipWriter.transformImages(zipReader)
-    const writerBuffer = zipWriter.extractBinary()
-    const blob = new Blob([writerBuffer], {type: 'application/octet-stream'})
-    saveAs(blob, 'test.zip')
-
-    // for (const filename of filenames) {
-    //     const buffer = await zipReader.extractBinary(filename)
-    //     const blob = new Blob([buffer], {type: 'application/octet-stream'})
-    //     const basename = filename.split('/').pop()
-    //     saveAs(blob, basename)
-    // }
 }
 
 async function readFile(fileInput) {

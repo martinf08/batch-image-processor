@@ -1,33 +1,53 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="utf-8">
-        <title>Hello wasm-pack!</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.7.3/dist/css/uikit.min.css"/>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/eva-icons@1.1.3/style/eva-icons.min.css"/>
-    </head>
-    <body>
-    <section class="uk-section">
-        <div class="uk-container">
-            <h1>BIP : Batch Image Processor</h1>
-            <p>
-                <label>
+<head>
+    <meta charset="utf-8">
+    <title>Hello wasm-pack!</title>
+    <link rel="stylesheet" href="assets/css/uikit.min.css"/>
+    <link rel="stylesheet" href="assets/css/main.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/eva-icons@1.1.3/style/eva-icons.min.css"/>
+</head>
+<body>
+
+<section class="uk-section">
+    <div class="uk-container">
+        <h1>BIP : Batch Image Processor</h1>
+        <p>
+            <label>
                 <span class="uk-button uk-button-primary">
                   <span class="eva eva-lg eva-plus-outline"></span>
                   Choose a zip file
                 </span>
-                    <input class="uk-hidden" type="file" accept="application/zip" id="zip-upload" name="zip-upload"/>
-                </label>
-            </p>
+                <input class="uk-hidden" type="file" accept="application/zip" id="zip-upload" name="zip-upload"/>
+            </label>
 
-            <progress id="js-progressbar" class="uk-progress" value="0" max="100"></progress>
-        </div>
-    </section>
+            <button class="uk-button uk-button-success uk-align-right" id="zip-download">
+                  <span class="eva eva-lg eva-download-outline"></span>
+                  Download images
+            </button>
+        </p>
+        <progress id="js-progressbar" class="uk-progress" value="0" max="100"></progress>
+
+        <ul class="uk-list uk-list-divider" data-js="list">
+            <template data-js="list-item-template">
+                <li class="uk-flex">
+              <span class="uk-flex-auto" data-js="filename">
+                {{ filename }}
+              </span>
+                    <button class="uk-button uk-button-primary uk-button-small" type="button" data-js="extract">
+                        <span class="eva eva-lg eva-download-outline"></span>
+                        Download
+                    </button>
+                </li>
+            </template>
+        </ul>
+    </div>
+</section>
 
 
-    <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
-    <script src="https://cdn.jsdelivr.net/npm/uikit@3.7.4/dist/js/uikit.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/uikit@3.7.4/dist/js/uikit-icons.min.js"></script>
-    <script src="./bootstrap.js"></script>
-    </body>
+<noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
+<script src="assets/js/uikit.min.js"></script>
+<script src="assets/js/uikit-icons.min.js"></script>
+<script src="./bootstrap.js"></script>
+</body>
 </html>
