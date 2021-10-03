@@ -1,0 +1,21 @@
+.uk-button-success {
+    color: #ffffff;
+    background-color: #4caf50;
+    border: 1px solid transparent;
+}
+.uk-button-success:hover,
+.uk-button-success:focus {
+    color: #ffffff;
+    background-color: #388e3c;
+    border: 1px solid transparent;
+}
+.uk-button-success:active,
+.uk-button-success.uk-active {
+    color: #ffffff;
+    background-color: #1b5e20;
+    border: 1px solid transparent;
+}
+
+#zip-download {
+    display: none;
+}
