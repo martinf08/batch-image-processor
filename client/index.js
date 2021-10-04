@@ -1,6 +1,8 @@
 import * as bip from "batch-image-processor"
 import { saveAs } from "file-saver"
 
+const THUMB_SIZE = 200
+
 function setup() {
     const fileInput = document.getElementById('zip-upload')
     fileInput.addEventListener('change', function (event)  {
@@ -28,17 +30,27 @@ async function load(event) {
     const $template = document.querySelector('[data-js=list-item-template]')
     const $list = document.querySelector('[data-js=list]')
 
+    const $thumbNav = document.getElementById("thumbnav")
+    let idx = 0
     for (const filename of filenames) {
         const $item = document.importNode($template.content, true)
         const $filename = $item.querySelector('[data-js="filename"]')
         const $extract = $item.querySelector('[data-js="extract"]')
 
+        const [blob, basename] = await extractFile(zipReader, filename)
         $filename.textContent = filename
-        $extract.addEventListener('click', async () => {
-            await extractFile(zipReader, filename)
+        await $extract.addEventListener('click', async () => {
+            saveAs(blob, basename)
         })
 
         $list.appendChild($item)
+
+        if ($thumbNav.style.display !== "block") {
+            $thumbNav.style.display = "block"
+        }
+
+        createThumb($thumbNav, blob, idx)
+        idx++;
     }
 
     const $zipDownloadButton = document.getElementById("zip-download")
@@ -46,6 +58,25 @@ async function load(event) {
         await extractZip(zipWriter)
     })
     $zipDownloadButton.style.display = "block"
+}
+
+function createThumb($thumbNav, blob, idx) {
+    const canvas = document.createElement('canvas')
+    canvas.width = THUMB_SIZE
+    canvas.height = THUMB_SIZE
+
+    const img = new Image(THUMB_SIZE, THUMB_SIZE)
+    img.addEventListener('load', () => canvas.getContext('2d').drawImage(img, 0, 0))
+    console.log(blob)
+    img.setAttribute('src', URL.createObjectURL(blob))
+
+    const a = document.createElement('a')
+    a.appendChild(img)
+
+    const li = document.createElement('li')
+    li.appendChild(a)
+
+    $thumbNav.appendChild(li)
 }
 
 async function extractZip(zipWriter) {
@@ -58,7 +89,8 @@ async function extractFile(zipReader, filename) {
     const buffer = await zipReader.extractBinary(filename)
     const blob = new Blob([buffer], {type: 'application/octet-stream'})
     const basename = filename.split('/').pop()
-    saveAs(blob, basename)
+
+    return [blob, basename]
 }
 
 async function progressBar(zipReader) {
