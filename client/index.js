@@ -1,11 +1,11 @@
 import * as bip from "batch-image-processor"
-import { saveAs } from "file-saver"
+import {saveAs} from "file-saver"
 
 const THUMB_SIZE = 200
 
 function setup() {
     const fileInput = document.getElementById('zip-upload')
-    fileInput.addEventListener('change', function (event)  {
+    fileInput.addEventListener('change', function (event) {
         load(event)
     })
 }
@@ -30,7 +30,7 @@ async function load(event) {
     const $template = document.querySelector('[data-js=list-item-template]')
     const $list = document.querySelector('[data-js=list]')
 
-    const $thumbNav = document.getElementById("thumbnav")
+    const $thumbNav = document.getElementById("thumb-template")
     let idx = 0
     for (const filename of filenames) {
         const $item = document.importNode($template.content, true)
@@ -76,7 +76,11 @@ function createThumb($thumbNav, blob, idx) {
     const li = document.createElement('li')
     li.appendChild(a)
 
-    $thumbNav.appendChild(li)
+    if (idx === 0) {
+        document.importNode($thumbNav.content, true)
+        $thumbNav.innerHTML = ''
+    }
+    $thumbNav.appendChild(li);
 }
 
 async function extractZip(zipWriter) {

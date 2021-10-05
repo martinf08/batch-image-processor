@@ -27,28 +27,31 @@
                 </p>
                 <progress id="js-progressbar" class="uk-progress" value="0" max="100"></progress>
 
+                <section class="uk-section">
+                    <div class="uk-container">
+                        <ul class="uk-thumbnav" uk-margin id="thumbnav">
+                            <template id="thumb-template">
+                                <li>{{ image }}</li>
+                            </template>
+                        </ul>
+                    </div>
+                </section>
+
                 <ul class="uk-list uk-list-divider" data-js="list">
                     <template data-js="list-item-template">
                         <li class="uk-flex">
-                      <span class="uk-flex-auto" data-js="filename">
-                        {{ filename }}
-                      </span>
-                            <button class="uk-button uk-button-primary uk-button-small" type="button" data-js="extract">
-                                <span class="eva eva-lg eva-download-outline"></span>
-                                Download
-                            </button>
+                           <span class="uk-flex-auto" data-js="filename">
+                                {{ filename }}
+                           </span>
+                           <button class="uk-button uk-button-primary uk-button-small" type="button" data-js="extract">
+                               <span class="eva eva-lg eva-download-outline"></span>
+                                   Download
+                           </button>
                         </li>
                     </template>
                 </ul>
             </div>
         </section>
-        <section class="uk-section">
-            <div class="uk-container">
-                <ul class="uk-thumbnav" uk-margin id="thumbnav">
-                </ul>
-            </div>
-        </section>
-
         <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
         <script src="https://cdn.jsdelivr.net/npm/uikit@3.7.4/dist/js/uikit.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/uikit@3.7.4/dist/js/uikit-icons.min.js"></script>
