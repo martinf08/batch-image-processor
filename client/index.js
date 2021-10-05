@@ -1,7 +1,7 @@
 import * as bip from "batch-image-processor"
 import {saveAs} from "file-saver"
 
-const THUMB_SIZE = 200
+const THUMB_SIZE = 400
 
 function setup() {
     const fileInput = document.getElementById('zip-upload')
@@ -67,7 +67,6 @@ function createThumb($thumbNav, blob, idx) {
 
     const img = new Image(THUMB_SIZE, THUMB_SIZE)
     img.addEventListener('load', () => canvas.getContext('2d').drawImage(img, 0, 0))
-    console.log(blob)
     img.setAttribute('src', URL.createObjectURL(blob))
 
     const a = document.createElement('a')
